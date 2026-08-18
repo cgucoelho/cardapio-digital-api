@@ -1,0 +1,26 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: deploy
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/cardapio-digital/api
+            git pull origin main
+            # Sem --no-cache de propósito: o COPY do fonte já invalida o que
+            # mudou, e reaproveitar a camada do `npm ci` economiza minutos e
+            # memória numa VPS de 4 GB que também roda n8n e Postgres.
+            docker build -t cardapio-api:latest .
+            /opt/cardapio-digital/deploy.sh api

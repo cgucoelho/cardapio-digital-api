@@ -73,7 +73,16 @@ docker build -t cardapio-api:latest .
 ```
 
 Roda como usuário `node`, com healthcheck em `GET /items`. Em produção os
-caminhos `/app/.data` e `/app/uploads` são volumes do Swarm — o stack fica em
-`/root/stack/cardapio.yaml` na VPS (fora deste repo, junto dos outros stacks).
+caminhos `/app/.data` e `/app/uploads` são volumes do Swarm — o `stack.yml` fica
+em `/opt/cardapio-digital/` na VPS, fora deste repo (é compartilhado com o
+front).
 
 Em produção o Traefik remove o prefixo: `/api/items` chega aqui como `/items`.
+
+## Deploy automático
+
+Push na `main` dispara `.github/workflows/deploy.yml`: entra por SSH na VPS como
+`deploy`, faz `git pull`, builda `cardapio-api:latest` e roda
+`/opt/cardapio-digital/deploy.sh api` — que recria **só** o serviço da API.
+
+Secrets do repo: `VPS_HOST` e `VPS_SSH_KEY`.
