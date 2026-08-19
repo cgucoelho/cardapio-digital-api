@@ -33,4 +33,16 @@ export class ItemsService {
     const removido = await this.repo.remove(id);
     if (!removido) throw new NotFoundException('Item não encontrado.');
   }
+
+  async toggle(id: string): Promise<Item> {
+  const item = await this.repo.findById(id);
+
+  if (!item) {
+    throw new NotFoundException(`Item ${id} não encontrado`);
+  }
+
+  await this.repo.update(id, { available: !item.available });
+
+  return { ...item, available: !item.available };
+}
 }

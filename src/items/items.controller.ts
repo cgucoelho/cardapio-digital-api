@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -49,5 +50,11 @@ export class ItemsController {
   @HttpCode(204)
   remove(@Param('id') id: string): Promise<void> {
     return this.itemsService.remove(id);
+  }
+
+  @Patch(':id/toggle')
+  @HttpCode(200)
+  toggle(@Param('id') id: string): Promise<Item>{
+    return this.itemsService.toggle(id);
   }
 }
