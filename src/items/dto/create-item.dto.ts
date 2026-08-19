@@ -2,7 +2,6 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -29,8 +28,9 @@ export class CreateItemDto {
   @IsPositive({ message: 'O preço deve ser maior que zero.' })
   price: number;
 
-  @IsString()
-  @IsNotEmpty()
+  // Categoria livre deixa entrar typo ("Bebida"), que grava no banco e depois
+  // não aparece em seção nenhuma da vitrine — item invisível sem erro.
+  @IsIn(CATEGORIAS, { message: 'Categoria inválida.' })
   category: Categoria;
 
   @IsOptional()

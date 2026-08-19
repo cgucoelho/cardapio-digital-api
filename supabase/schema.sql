@@ -11,11 +11,18 @@ create table if not exists public.items (
   name        text        not null,
   description text,
   price       numeric(10, 2) not null check (price > 0),
-  category    text        not null check (category in ('Bebidas', 'Doces', 'Salgados', 'Outros')),
+  category    text        not null check (category in ('Bebidas', 'Doces', 'Salgados', 'Refeições', 'Outros')),
   image_url   text,
   available   boolean     not null default true,
   created_at  timestamptz not null default now()
 );
+
+-- O `create table if not exists` acima não altera tabela que já existe, então a
+-- lista de categorias é reaplicada aqui: rodar este arquivo de novo num projeto
+-- antigo passa a aceitar 'Refeições' em vez de estourar o check.
+alter table public.items drop constraint if exists items_category_check;
+alter table public.items add constraint items_category_check
+  check (category in ('Bebidas', 'Doces', 'Salgados', 'Refeições', 'Outros'));
 
 create index if not exists items_category_idx on public.items (category);
 create index if not exists items_created_at_idx on public.items (created_at desc);
