@@ -4,10 +4,14 @@ import { ConfigService } from '@nestjs/config';
 import { ImagemLida } from './ler-imagem';
 
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-// gemini-2.5-flash-image ("nano banana") edita imagem; o -flash simples só
-// texto/visão, mais rápido e barato pra descrição. Os dois no tier gratuito.
-const MODELO_IMAGEM = 'gemini-2.5-flash-image';
-const MODELO_TEXTO = 'gemini-2.5-flash';
+// gemini-3.1-flash-image ("nano banana 2") edita imagem; o -flash simples só
+// texto/visão, pra descrição. ⚠️ A conta de teste usada aqui tem quota 0 pro
+// tier gratuito de geração de imagem (só texto está liberado) — ver
+// project_cardapio_digital_ia na memória. gemini-2.5-flash e -flash-lite
+// pararam de aceitar contas novas; se o Google aposentar estes também, checar
+// modelos disponíveis com GET /v1beta/models antes de trocar o nome aqui.
+const MODELO_IMAGEM = 'gemini-3.1-flash-image';
+const MODELO_TEXTO = 'gemini-3.6-flash';
 
 interface ParteResposta {
   text?: string;
