@@ -1,6 +1,8 @@
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AiController } from './ai/ai.controller';
+import { GeminiService } from './ai/gemini.service';
 import { modoSupabase } from './config';
 import { ItemsController } from './items/items.controller';
 import { ItemsRepository } from './items/items.repository';
@@ -26,9 +28,10 @@ const providersLocais: Provider[] = [
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [ItemsController, UploadController],
+  controllers: [ItemsController, UploadController, AiController],
   providers: [
     ItemsService,
+    GeminiService,
     ...(modoSupabase() ? providersSupabase : providersLocais),
   ],
 })

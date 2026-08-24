@@ -11,3 +11,8 @@ export function modoSupabase(): boolean {
       process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
 }
+
+/** Sem isso os endpoints /ai/* respondem 503 — ver GeminiService. */
+export function geminiConfigurado(): boolean {
+  return Boolean(process.env.GEMINI_API_KEY?.trim());
+}

@@ -9,7 +9,7 @@ import {
 import { mkdirSync } from 'fs';
 
 import { AppModule } from './app.module';
-import { modoSupabase } from './config';
+import { geminiConfigurado, modoSupabase } from './config';
 import { PASTA_UPLOADS } from './storage/local-storage.service';
 
 const PORTA = Number(process.env.PORT ?? 3000);
@@ -50,6 +50,11 @@ async function bootstrap(): Promise<void> {
     modoSupabase()
       ? 'Persistência: Supabase (PostgreSQL + Storage)'
       : 'Persistência: local (.data/items.json + uploads/) — defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY pra usar o Supabase',
+  );
+  logger.log(
+    geminiConfigurado()
+      ? 'IA (melhorar foto / gerar descrição): habilitada'
+      : 'IA (melhorar foto / gerar descrição): desabilitada — defina GEMINI_API_KEY pra habilitar',
   );
 }
 
