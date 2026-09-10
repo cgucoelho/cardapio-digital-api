@@ -1,38 +1,36 @@
-import { Module, Provider } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { AiController } from './ai/ai.controller';
 import { GeminiService } from './ai/gemini.service';
-import { modoSupabase } from './config';
+import { AuthGuard } from './auth/auth.guard';
+import { MeController } from './auth/me.controller';
 import { ItemsController } from './items/items.controller';
 import { ItemsRepository } from './items/items.repository';
 import { ItemsService } from './items/items.service';
-import { LocalItemsRepository } from './items/local-items.repository';
-import { SupabaseItemsRepository } from './items/supabase-items.repository';
-import { LocalStorageService } from './storage/local-storage.service';
+import { PublicController } from './public/public.controller';
 import { StorageService } from './storage/storage.service';
-import { SupabaseStorageService } from './storage/supabase-storage.service';
 import { UploadController } from './storage/upload.controller';
 import { SupabaseService } from './supabase/supabase.service';
-
-const providersSupabase: Provider[] = [
-  SupabaseService,
-  { provide: ItemsRepository, useClass: SupabaseItemsRepository },
-  { provide: StorageService, useClass: SupabaseStorageService },
-];
-
-const providersLocais: Provider[] = [
-  { provide: ItemsRepository, useClass: LocalItemsRepository },
-  { provide: StorageService, useClass: LocalStorageService },
-];
+import { TenantsService } from './tenants/tenants.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true })],
-  controllers: [ItemsController, UploadController, AiController],
+  controllers: [
+    PublicController,
+    MeController,
+    ItemsController,
+    UploadController,
+    AiController,
+  ],
   providers: [
+    SupabaseService,
+    TenantsService,
+    ItemsRepository,
     ItemsService,
+    StorageService,
     GeminiService,
-    ...(modoSupabase() ? providersSupabase : providersLocais),
+    AuthGuard,
   ],
 })
 export class AppModule {}
