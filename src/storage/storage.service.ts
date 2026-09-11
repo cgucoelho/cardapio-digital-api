@@ -1,6 +1,7 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { falhaSupabase } from '../supabase/erro';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export interface ArquivoEnviado {
@@ -20,6 +21,7 @@ export interface ArquivoEnviado {
 @Injectable()
 export class StorageService {
   private readonly bucket: string;
+  private readonly logger = new Logger(StorageService.name);
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -39,7 +41,7 @@ export class StorageService {
         upsert: false,
       });
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'upload', error);
 
     const { data } = this.supabase.client.storage
       .from(this.bucket)
