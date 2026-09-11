@@ -62,7 +62,7 @@ create table if not exists public.items (
   description text,
   price       numeric(10, 2) not null check (price > 0),
   category    text not null
-              check (category in ('Bebidas', 'Doces', 'Salgados', 'Refeições', 'Outros')),
+              check (category in ('Bebidas', 'Doces', 'Salgados', 'Refeições', 'Marmitas', 'Outros')),
   image_url   text,
   available   boolean not null default true,
   created_at  timestamptz not null default now()
