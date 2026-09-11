@@ -1,6 +1,6 @@
 # Cardápio Digital — API
 
-Backend do MVP de cardápio digital para cafeteria: **NestJS com adapter Fastify**.
+Backend do cardápio digital multi-tenant: **NestJS com adapter Fastify**.
 Frontend em [cardapio-digital-front](https://github.com/cgucoelho/cardapio-digital-front).
 
 No ar em `https://cardapiodigital.capsoftware.com.br/api`.
@@ -9,60 +9,112 @@ No ar em `https://cardapiodigital.capsoftware.com.br/api`.
 
 ## Rodando
 
-Precisa de Node 18+ (na VPS o Node do sistema é v12; o 20 fica em `/opt/node20`):
+Precisa de Node 18+ (na VPS o Node do sistema é v12; o 20 fica em `/opt/node20`)
+e de um projeto Supabase:
 
 ```bash
 export PATH=/opt/node20/bin:$PATH
 npm install
-npm run start:dev     # http://localhost:3000
+cp .env.example .env      # preencha URL + service_role + anon key
+npm run start:dev         # http://localhost:3000
 ```
 
-O log do boot diz qual persistência está ativa.
+A API **não sobe sem Supabase** — é proposital. Até a virada multi-tenant existia
+um modo local (itens em `.data/items.json`, fotos em `uploads/`) que servia pra
+demo rodar sem credencial; ele foi aposentado porque nunca teria login nem RLS, e
+manter os dois caminhos dobrava cada mudança. Uma API que caísse silenciosamente
+nesse modo serviria cardápio vazio pro cliente na mesa.
 
-## Os dois modos de persistência
+### Preparando o projeto Supabase
 
-Sobe em **modo local** por padrão: itens em `.data/items.json`, fotos em
-`uploads/` (servidas em `/uploads`). É o que faz a demo rodar sem depender de
-credencial nenhuma — já com os **6 itens de exemplo** carregados.
+1. Crie o projeto em [supabase.com](https://supabase.com).
+2. Rode `supabase/schema.sql` no SQL Editor — cria `tenants`, `tenant_users`,
+   `items`, o bucket público `menu-items` e as policies de RLS.
+3. Copie de **Settings > API** pro `.env`: a URL, a `service_role` (só servidor)
+   e a `anon` (pública, vai pro browser).
+4. Crie o primeiro estabelecimento:
 
-Com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no `.env`, a mesma API passa a
-usar **Supabase (PostgreSQL + Storage)** sem mudar uma linha do frontend: os dois
-modos implementam o mesmo contrato (`ItemsRepository` e `StorageService`).
+```bash
+npx ts-node scripts/criar-tenant.ts \
+  --slug cafe-da-esquina --nome "Café da Esquina" --email dono@cafe.com.br
+```
 
-### Ligando o Supabase
+---
 
-1. `.env` (copie de `.env.example`):
-   ```
-   SUPABASE_URL=https://xxxx.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=...      # Settings > API > service_role
-   SUPABASE_BUCKET=menu-items
-   ```
-2. Rode `supabase/schema.sql` no SQL Editor do projeto — cria a tabela `items`,
-   o bucket público `menu-items` e insere os mesmos 6 itens de demonstração.
-3. Reinicie a API.
+## Multi-tenant: como o tenant é resolvido
 
-A `service_role` key só é usada no servidor; nunca vai pro browser.
+Duas portas, e o tenant vem de um lugar diferente em cada uma:
+
+| Porta                 | Quem usa       | De onde sai o tenant             |
+| --------------------- | -------------- | -------------------------------- |
+| `/public/:slug/*`     | cliente na mesa| do **slug na URL**, sem login    |
+| `/items`, `/upload`, `/ai/*`, `/me` | lojista | do **token** do Supabase Auth   |
+
+O `AuthGuard` confere o token no Supabase, busca em `tenant_users` os
+estabelecimentos daquela conta e pendura o escolhido no request. O cabeçalho
+opcional `X-Tenant-Id` só serve pra quem administra mais de um cardápio — e ele
+é **conferido contra a lista da conta**, nunca aceito como veio.
+
+⚠️ A API roda com a `service_role`, que **ignora a RLS**. Não existe rede de
+segurança embaixo do repositório: por isso `tenantId` é o primeiro parâmetro de
+todo método de `ItemsRepository`, inclusive nos que já recebem o id do item.
+Buscar só por id parece bastar — o id é um uuid — mas bastaria um id vazado pra
+um cliente editar o item do outro. As policies do `schema.sql` são defesa em
+profundidade, pro dia em que o browser falar direto com o Supabase.
 
 ---
 
 ## Endpoints
 
+Público (sem token):
+
+| Método | Rota                        | Descrição                                  |
+| ------ | --------------------------- | ------------------------------------------ |
+| GET    | `/public/config`            | URL + anon key do Supabase e tenant padrão |
+| GET    | `/public/:slug`             | Dados do estabelecimento (nome, cor, …)    |
+| GET    | `/public/:slug/items`       | Cardápio da vitrine                        |
+
+Autenticado (`Authorization: Bearer <token do Supabase>`):
+
 | Método | Rota                | Descrição                                      |
 | ------ | ------------------- | ---------------------------------------------- |
-| GET    | `/items?category=`  | Lista itens; filtro opcional por categoria      |
+| GET    | `/me`               | Quem entrou e quais cardápios administra        |
+| GET    | `/items?category=`  | Lista itens do tenant; filtro por categoria     |
 | GET    | `/items/:id`        | Um item                                         |
 | POST   | `/items`            | Cria (201)                                      |
 | PUT    | `/items/:id`        | Atualiza (aceita payload parcial)               |
 | DELETE | `/items/:id`        | Remove (204)                                    |
+| PATCH  | `/items/:id/toggle` | Alterna disponível/esgotado                     |
 | POST   | `/upload`           | `multipart/form-data`, campo `file` → `{ url }` |
+| POST   | `/ai/describe`      | Gera descrição do item (Gemini)                 |
+| POST   | `/ai/enhance-image` | Melhora a foto (Gemini)                         |
 
-Tabela `items`: `id`, `name`, `description`, `price`, `category`, `image_url`,
-`available`, `created_at`. A API responde em camelCase (`imageUrl`), o banco
-guarda em snake_case.
+A API responde em camelCase (`imageUrl`), o banco guarda em snake_case.
 
 Validação: nome obrigatório (até 80 caracteres), preço numérico maior que zero,
-categoria dentro de `Bebidas | Doces | Salgados | Outros`, upload só aceita
-imagem até 5 MB.
+categoria dentro de `Bebidas | Doces | Salgados | Refeições | Outros`, upload só
+aceita imagem até 5 MB.
+
+As fotos vão pro bucket `menu-items` numa pasta por tenant
+(`menu-items/{tenant_id}/{arquivo}`) — bucket por cliente esbarraria no limite
+do projeto e pediria política nova a cada onboarding.
+
+---
+
+## Scripts de manutenção
+
+```bash
+# Loja nova (cria o tenant e o login do dono; --senha opcional, senão sorteia)
+npx ts-node scripts/criar-tenant.ts --slug padaria --nome "Padaria" --email dono@x.com
+
+# Traz um cardápio do modo local antigo pra dentro de um tenant
+npx ts-node scripts/migrar-para-supabase.ts \
+  --slug cafe-da-esquina --dados /tmp/items.json --fotos /tmp/uploads
+```
+
+Os dois leem o `.env` daqui. `criar-tenant.ts` é idempotente por slug; o de
+migração se recusa a rodar num tenant que já tem itens (a menos que você passe
+`--substituir`), pra não duplicar o cardápio inteiro num clique repetido.
 
 ---
 
@@ -72,12 +124,12 @@ imagem até 5 MB.
 docker build -t cardapio-api:latest .
 ```
 
-Roda como usuário `node`, com healthcheck em `GET /items`. Em produção os
-caminhos `/app/.data` e `/app/uploads` são volumes do Swarm — o `stack.yml` fica
-em `/opt/cardapio-digital/` na VPS, fora deste repo (é compartilhado com o
-front).
+Roda como usuário `node`, sem volume nenhum (nada é gravado em disco), com
+healthcheck em `GET /public/config` — a única rota que responde 200 sem token.
 
 Em produção o Traefik remove o prefixo: `/api/items` chega aqui como `/items`.
+O `stack.yml` fica em `/opt/cardapio-digital/` na VPS, fora deste repo (é
+compartilhado com o front).
 
 ## Deploy automático
 

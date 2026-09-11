@@ -9,40 +9,35 @@ import { ItemsRepository } from './items.repository';
 export class ItemsService {
   constructor(private readonly repo: ItemsRepository) {}
 
-  findAll(category?: Categoria): Promise<Item[]> {
-    return this.repo.findAll(category);
+  findAll(tenantId: string, category?: Categoria): Promise<Item[]> {
+    return this.repo.findAll(tenantId, category);
   }
 
-  async findOne(id: string): Promise<Item> {
-    const item = await this.repo.findById(id);
+  async findOne(tenantId: string, id: string): Promise<Item> {
+    const item = await this.repo.findById(tenantId, id);
     if (!item) throw new NotFoundException('Item não encontrado.');
     return item;
   }
 
-  create(dto: CreateItemDto): Promise<Item> {
-    return this.repo.create(dto);
+  create(tenantId: string, dto: CreateItemDto): Promise<Item> {
+    return this.repo.create(tenantId, dto);
   }
 
-  async update(id: string, dto: UpdateItemDto): Promise<Item> {
-    const item = await this.repo.update(id, dto);
+  async update(tenantId: string, id: string, dto: UpdateItemDto): Promise<Item> {
+    const item = await this.repo.update(tenantId, id, dto);
     if (!item) throw new NotFoundException('Item não encontrado.');
     return item;
   }
 
-  async remove(id: string): Promise<void> {
-    const removido = await this.repo.remove(id);
+  async remove(tenantId: string, id: string): Promise<void> {
+    const removido = await this.repo.remove(tenantId, id);
     if (!removido) throw new NotFoundException('Item não encontrado.');
   }
 
-  async toggle(id: string): Promise<Item> {
-  const item = await this.repo.findById(id);
+  async toggle(tenantId: string, id: string): Promise<Item> {
+    const item = await this.repo.findById(tenantId, id);
+    if (!item) throw new NotFoundException('Item não encontrado.');
 
-  if (!item) {
-    throw new NotFoundException(`Item ${id} não encontrado`);
+    return this.update(tenantId, id, { available: !item.available });
   }
-
-  await this.repo.update(id, { available: !item.available });
-
-  return { ...item, available: !item.available };
-}
 }

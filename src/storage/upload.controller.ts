@@ -4,12 +4,17 @@ import {
   Logger,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 
+import { TenantAtual } from '../auth/auth.decorators';
+import { AuthGuard } from '../auth/auth.guard';
+import { Tenant } from '../tenants/tenant.types';
 import { StorageService } from './storage.service';
 
 @Controller()
+@UseGuards(AuthGuard)
 export class UploadController {
   private readonly logger = new Logger(UploadController.name);
 
@@ -17,7 +22,10 @@ export class UploadController {
 
   /** multipart/form-data com um campo "file". Devolve { url }. */
   @Post('upload')
-  async upload(@Req() req: FastifyRequest): Promise<{ url: string }> {
+  async upload(
+    @Req() req: FastifyRequest,
+    @TenantAtual() tenant: Tenant,
+  ): Promise<{ url: string }> {
     const arquivo = await req.file();
 
     if (!arquivo) {
@@ -36,7 +44,7 @@ export class UploadController {
       throw new BadRequestException('Imagem muito grande (máximo 5 MB).');
     }
 
-    const url = await this.storage.upload({
+    const url = await this.storage.upload(tenant.id, {
       buffer,
       filename: arquivo.filename,
       mimetype: arquivo.mimetype,
