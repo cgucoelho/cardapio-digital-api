@@ -26,6 +26,11 @@ create table if not exists public.tenants (
   whatsapp    text,
   -- Rodapé da vitrine ("Wi-Fi: cafe-esquina"). Vazio = some o rodapé.
   wifi        text,
+  -- Delivery (Escopo A: pedido via WhatsApp, pago na entrega).
+  delivery_fee     numeric(10,2) not null default 0 check (delivery_fee >= 0),
+  min_order        numeric(10,2) check (min_order >= 0),  -- null = sem mínimo
+  accepts_delivery boolean not null default true,
+  accepts_pickup   boolean not null default true,
   active      boolean not null default true,
   created_at  timestamptz not null default now()
 );

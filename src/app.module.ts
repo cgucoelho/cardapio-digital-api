@@ -12,6 +12,7 @@ import { PublicController } from './public/public.controller';
 import { StorageService } from './storage/storage.service';
 import { UploadController } from './storage/upload.controller';
 import { SupabaseService } from './supabase/supabase.service';
+import { TenantsController } from './tenants/tenants.controller';
 import { TenantsService } from './tenants/tenants.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { TenantsService } from './tenants/tenants.service';
   controllers: [
     PublicController,
     MeController,
+    TenantsController,
     ItemsController,
     UploadController,
     AiController,
