@@ -8,6 +8,11 @@ export interface Tenant {
   brandColor: string;
   whatsapp: string | null;
   wifi: string | null;
+  // Delivery (camelCase pro front). deliveryFee em reais; minOrder null = sem mínimo.
+  deliveryFee: number;
+  minOrder: number | null;
+  acceptsDelivery: boolean;
+  acceptsPickup: boolean;
   active: boolean;
   createdAt: string;
 }
@@ -22,6 +27,10 @@ export interface TenantRow {
   brand_color: string;
   whatsapp: string | null;
   wifi: string | null;
+  delivery_fee: number | string;
+  min_order: number | string | null;
+  accepts_delivery: boolean;
+  accepts_pickup: boolean;
   active: boolean;
   created_at: string;
 }
@@ -36,6 +45,11 @@ export function paraTenant(row: TenantRow): Tenant {
     brandColor: row.brand_color,
     whatsapp: row.whatsapp,
     wifi: row.wifi,
+    // numeric do Postgres pode chegar como string dependendo do driver.
+    deliveryFee: Number(row.delivery_fee),
+    minOrder: row.min_order === null ? null : Number(row.min_order),
+    acceptsDelivery: row.accepts_delivery,
+    acceptsPickup: row.accepts_pickup,
     active: row.active,
     createdAt: row.created_at,
   };

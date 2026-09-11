@@ -79,6 +79,7 @@ Autenticado (`Authorization: Bearer <token do Supabase>`):
 | Método | Rota                | Descrição                                      |
 | ------ | ------------------- | ---------------------------------------------- |
 | GET    | `/me`               | Quem entrou e quais cardápios administra        |
+| PUT    | `/tenant`           | Edita as configs da própria loja (delivery, marca) |
 | GET    | `/items?category=`  | Lista itens do tenant; filtro por categoria     |
 | GET    | `/items/:id`        | Um item                                         |
 | POST   | `/items`            | Cria (201)                                      |
@@ -90,6 +91,10 @@ Autenticado (`Authorization: Bearer <token do Supabase>`):
 | POST   | `/ai/enhance-image` | Melhora a foto (Gemini)                         |
 
 A API responde em camelCase (`imageUrl`), o banco guarda em snake_case.
+
+O tenant carrega as configs de delivery (Escopo A): `delivery_fee`, `min_order`,
+`accepts_delivery`, `accepts_pickup` — editáveis pelo lojista via `PUT /tenant`,
+lidas pela vitrine no checkout que monta o pedido de WhatsApp.
 
 Validação: nome obrigatório (até 80 caracteres), preço numérico maior que zero,
 categoria dentro de `Bebidas | Doces | Salgados | Refeições | Outros`, upload só
