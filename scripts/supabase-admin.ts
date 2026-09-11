@@ -1,6 +1,11 @@
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import {
+  SupabaseClient,
+  SupabaseClientOptions,
+  createClient,
+} from '@supabase/supabase-js';
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
+import { WebSocket } from 'ws';
 
 /**
  * Lê o api/.env sem depender do dotenv: o pacote só existe aqui de carona no
@@ -41,9 +46,18 @@ export function admin(): SupabaseClient {
     );
   }
 
-  return createClient(url, chave, {
+  const opcoes: SupabaseClientOptions<'public'> = {
     auth: { persistSession: false, autoRefreshToken: false },
-  });
+  };
+
+  // Mesmo motivo do SupabaseService: o supabase-js monta o Realtime dentro do
+  // createClient e estoura em Node sem WebSocket nativo (< 22) — e é
+  // justamente no Node 20 da VPS que estes scripts rodam.
+  if (typeof globalThis.WebSocket === 'undefined') {
+    opcoes.realtime = { transport: WebSocket as never };
+  }
+
+  return createClient(url, chave, opcoes);
 }
 
 /** Lê `--chave valor` da linha de comando. */
