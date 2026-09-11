@@ -1,10 +1,7 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+import { falhaSupabase } from '../supabase/erro';
 import { SupabaseService } from '../supabase/supabase.service';
 import { Tenant, TenantRow, paraTenant } from './tenant.types';
 
@@ -15,6 +12,7 @@ const COLUNAS =
 @Injectable()
 export class TenantsService {
   private readonly db: SupabaseClient;
+  private readonly logger = new Logger(TenantsService.name);
 
   constructor(supabase: SupabaseService) {
     this.db = supabase.client;
@@ -29,7 +27,7 @@ export class TenantsService {
       .eq('active', true)
       .maybeSingle();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'porSlug', error);
     if (!data) throw new NotFoundException('Cardápio não encontrado.');
 
     return paraTenant(data as TenantRow);
@@ -47,7 +45,7 @@ export class TenantsService {
       .select(`tenants!inner(${COLUNAS})`)
       .eq('user_id', userId);
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'doUsuario', error);
 
     return ((data ?? []) as unknown as { tenants: TenantRow }[])
       .map((linha) => paraTenant(linha.tenants))

@@ -81,11 +81,15 @@ on conflict (id) do update set public = true;
 -- ---------------------------------------------------------------------
 -- 5. RLS
 -- ---------------------------------------------------------------------
--- A API é o único caminho de escrita e usa a service_role, que ignora RLS.
--- As policies abaixo são defesa em profundidade: se um dia o front falar
--- direto com o Supabase (ou vazar a anon key, que é pública por design), o
--- pior que acontece é ler cardápio de loja ativa — nunca escrever na loja
--- dos outros.
+-- A API é o único caminho de leitura E escrita, e usa a service_role, que
+-- ignora RLS. O browser só fala com o Supabase pra autenticar.
+--
+-- Por isso NÃO existe policy de leitura pública aqui: com uma, qualquer um de
+-- posse da anon key (que é pública por design, vai no browser) listaria a
+-- tabela `tenants` inteira — o nome e o WhatsApp de cada estabelecimento
+-- cliente. Sem ela, a RLS nega por padrão e a anon key serve só pra login.
+-- Se um dia o front for ler direto do Supabase, a policy de leitura volta —
+-- de preferência restrita, não aberta como era.
 
 -- Pertencimento em SQL, pra não repetir o subselect em cada policy.
 -- security definer: a própria checagem não pode esbarrar na RLS de
@@ -107,10 +111,6 @@ alter table public.tenants      enable row level security;
 alter table public.tenant_users enable row level security;
 alter table public.items        enable row level security;
 
-drop policy if exists tenants_public_read on public.tenants;
-create policy tenants_public_read on public.tenants
-  for select using (active);
-
 drop policy if exists tenants_member_update on public.tenants;
 create policy tenants_member_update on public.tenants
   for update using (public.is_tenant_member(id)) with check (public.is_tenant_member(id));
@@ -119,15 +119,9 @@ drop policy if exists tenant_users_self_read on public.tenant_users;
 create policy tenant_users_self_read on public.tenant_users
   for select using (user_id = auth.uid());
 
--- Vitrine: qualquer um lê o cardápio de uma loja ativa — inclusive o item
--- indisponível, que a vitrine mostra com o selo de esgotado em vez de esconder.
-drop policy if exists items_public_read on public.items;
-create policy items_public_read on public.items
-  for select using (
-    exists (select 1 from public.tenants t where t.id = items.tenant_id and t.active)
-  );
-
--- Admin: quem é do tenant faz tudo dentro do próprio tenant.
+-- Quem é do tenant faz tudo dentro do próprio tenant. A vitrine do cliente
+-- final não aparece aqui porque não passa por RLS: ela é servida pela API em
+-- /public/:slug/items, que filtra por tenant no repositório.
 drop policy if exists items_member_all on public.items;
 create policy items_member_all on public.items
   for all using (public.is_tenant_member(tenant_id))

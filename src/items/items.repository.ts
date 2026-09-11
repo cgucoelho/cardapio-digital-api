@@ -1,6 +1,7 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+import { falhaSupabase } from '../supabase/erro';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -33,6 +34,7 @@ interface ItemRow {
 @Injectable()
 export class ItemsRepository {
   private readonly db: SupabaseClient;
+  private readonly logger = new Logger(ItemsRepository.name);
 
   constructor(supabase: SupabaseService) {
     this.db = supabase.client;
@@ -48,7 +50,7 @@ export class ItemsRepository {
     if (category) query = query.eq('category', category);
 
     const { data, error } = await query;
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'findAll', error);
 
     return (data as ItemRow[]).map(paraItem);
   }
@@ -61,7 +63,7 @@ export class ItemsRepository {
       .eq('id', id)
       .maybeSingle();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'findById', error);
     return data ? paraItem(data as ItemRow) : null;
   }
 
@@ -72,7 +74,7 @@ export class ItemsRepository {
       .select()
       .single();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'create', error);
     return paraItem(data as ItemRow);
   }
 
@@ -89,7 +91,7 @@ export class ItemsRepository {
       .select()
       .maybeSingle();
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'update', error);
     return data ? paraItem(data as ItemRow) : null;
   }
 
@@ -101,7 +103,7 @@ export class ItemsRepository {
       .eq('id', id)
       .select('id');
 
-    if (error) throw new InternalServerErrorException(error.message);
+    if (error) falhaSupabase(this.logger, 'remove', error);
     return (data ?? []).length > 0;
   }
 }
