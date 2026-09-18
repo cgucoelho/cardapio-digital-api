@@ -7,7 +7,6 @@ export const CATEGORIAS = [
   'Doces',
   'Salgados',
   'Refeições',
-  'Marmitas',
   'Outros',
 ] as const;
 
