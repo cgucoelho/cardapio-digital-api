@@ -67,21 +67,43 @@ export class GeminiService {
     };
   }
 
-  async descreverItem(nome: string, imagem: ImagemLida | null): Promise<string> {
-    const instrucao =
-      'Escreva uma descrição curta (até 160 caracteres), em português do Brasil, apetitosa ' +
-      `e objetiva para o item de cardápio "${nome}"` +
-      (imagem ? ', baseada na foto enviada' : '') +
-      '. Sem emoji, sem aspas, texto corrido, sem repetir o nome do item logo no início.';
+  /** Gera a descrição a partir SÓ do nome do item (o prompt é name-only). */
+  async descreverItem(nome: string): Promise<string> {
+    const instrucao = `Você é um redator especializado em cardápios de restaurantes brasileiros. Sua
+tarefa é gerar a descrição de um item de cardápio a partir apenas do nome do
+item.
 
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-      { text: instrucao },
-    ];
-    if (imagem) {
-      parts.push({ inlineData: { mimeType: imagem.mimetype, data: imagem.buffer.toString('base64') } });
-    }
+ITEM: "${nome}"
 
-    const resposta = await this.chamar(MODELO_TEXTO, { contents: [{ parts }] });
+Regras:
+- Português do Brasil, tom profissional e direto — não use adjetivos vazios
+  de marketing (delicioso, incrível, surpreendente, maravilhoso, saboroso,
+  imperdível e similares).
+- Priorize informação concreta que possa ser inferida com segurança a partir
+  do nome: ingrediente principal, forma de preparo, acompanhamento, textura.
+  Não invente ingredientes, quantidades ou detalhes que não estejam implícitos
+  no nome do item.
+- Máximo de 160 caracteres, incluindo espaços.
+- Texto corrido, sem emojis, sem aspas, sem markdown, sem hashtags.
+- Não repita o nome do item logo no início da frase.
+- Se o nome do item for genérico ou ambíguo (ex.: "Combo 1", "Prato do dia",
+  "Especial da casa") e não permitir inferir conteúdo real, gere uma frase
+  neutra sobre o tipo de refeição, sem inventar composição.
+- Responda apenas com o texto da descrição. Nenhum texto adicional, nenhuma
+  introdução, nenhuma explicação.
+
+Exemplos:
+Item: "Filé de tilápia grelhado com legumes salteados"
+Descrição: Filé grelhado no ponto, servido com legumes salteados na manteiga
+e ervas frescas.
+
+Item: "X-Salada Artesanal"
+Descrição: Pão brioche, hambúrguer artesanal, queijo, alface, tomate e maionese
+da casa.`;
+
+    const resposta = await this.chamar(MODELO_TEXTO, {
+      contents: [{ parts: [{ text: instrucao }] }],
+    });
     const texto = resposta.candidates?.[0]?.content?.parts
       ?.map((p) => p.text)
       .filter(Boolean)
