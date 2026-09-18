@@ -5,7 +5,7 @@ import { falhaSupabase } from '../supabase/erro';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
-import { Categoria, Item } from './item.types';
+import { Item } from './item.types';
 
 const TABELA = 'items';
 
@@ -16,7 +16,7 @@ interface ItemRow {
   name: string;
   description: string | null;
   price: number | string;
-  category: Categoria;
+  category: string;
   image_url: string | null;
   available: boolean;
   created_at: string;
@@ -40,7 +40,7 @@ export class ItemsRepository {
     this.db = supabase.client;
   }
 
-  async findAll(tenantId: string, category?: Categoria): Promise<Item[]> {
+  async findAll(tenantId: string, category?: string): Promise<Item[]> {
     let query = this.db
       .from(TABELA)
       .select('*')

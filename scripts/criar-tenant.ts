@@ -48,6 +48,16 @@ async function main(): Promise<void> {
   if (erroTenant) throw new Error(`Falha ao criar o tenant: ${erroTenant.message}`);
   console.log(`✔ Tenant ${tenant.name} (${tenant.slug}) — id ${tenant.id}`);
 
+  // Categorias iniciais — sem nenhuma, o lojista não consegue cadastrar item.
+  // São só um ponto de partida: ele renomeia/reordena/apaga no admin.
+  const PADRAO = ['Bebidas', 'Doces', 'Salgados', 'Refeições', 'Outros'];
+  const { error: erroCat } = await db.from('categories').upsert(
+    PADRAO.map((name, i) => ({ tenant_id: tenant.id, name, sort_order: i + 1 })),
+    { onConflict: 'tenant_id,name' },
+  );
+  if (erroCat) throw new Error(`Falha ao criar as categorias: ${erroCat.message}`);
+  console.log(`✔ ${PADRAO.length} categorias iniciais`);
+
   if (!email) {
     console.log('Nenhum --email: a loja ficou sem login. Rode de novo com --email pra ligar o dono.');
     return;

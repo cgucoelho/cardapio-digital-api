@@ -5,6 +5,8 @@ import { AiController } from './ai/ai.controller';
 import { GeminiService } from './ai/gemini.service';
 import { AuthGuard } from './auth/auth.guard';
 import { MeController } from './auth/me.controller';
+import { CategoriesController } from './categories/categories.controller';
+import { CategoriesService } from './categories/categories.service';
 import { ItemsController } from './items/items.controller';
 import { ItemsRepository } from './items/items.repository';
 import { ItemsService } from './items/items.service';
@@ -21,6 +23,7 @@ import { TenantsService } from './tenants/tenants.service';
     PublicController,
     MeController,
     TenantsController,
+    CategoriesController,
     ItemsController,
     UploadController,
     AiController,
@@ -28,6 +31,7 @@ import { TenantsService } from './tenants/tenants.service';
   providers: [
     SupabaseService,
     TenantsService,
+    CategoriesService,
     ItemsRepository,
     ItemsService,
     StorageService,

@@ -1,7 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
-  IsIn,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -9,8 +8,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-
-import { CATEGORIAS, Categoria } from '../item.types';
 
 /** Todos os campos são opcionais: o PUT aceita atualização parcial. */
 export class UpdateItemDto {
@@ -32,8 +29,11 @@ export class UpdateItemDto {
   price?: number;
 
   @IsOptional()
-  @IsIn(CATEGORIAS, { message: 'Categoria inválida.' })
-  category?: Categoria;
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1, { message: 'Escolha uma categoria.' })
+  @MaxLength(40)
+  category?: string;
 
   @IsOptional()
   @IsString()
