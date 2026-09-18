@@ -39,11 +39,10 @@ export class AiController {
     return { url };
   }
 
-  /** Gera uma descrição a partir do nome (e opcionalmente da foto) do item. */
+  /** Gera uma descrição a partir só do nome do item (o prompt é name-only). */
   @Post('describe')
   async describe(@Body() dto: DescribeItemDto): Promise<{ description: string }> {
-    const imagem = dto.imageUrl ? await lerImagem(dto.imageUrl) : null;
-    const description = await this.gemini.descreverItem(dto.name, imagem);
+    const description = await this.gemini.descreverItem(dto.name);
     return { description };
   }
 }
