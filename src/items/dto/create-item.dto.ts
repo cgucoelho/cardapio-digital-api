@@ -1,7 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
-  IsIn,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -9,8 +8,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-
-import { CATEGORIAS, Categoria } from '../item.types';
 
 export class CreateItemDto {
   @IsString()
@@ -28,10 +25,13 @@ export class CreateItemDto {
   @IsPositive({ message: 'O preço deve ser maior que zero.' })
   price: number;
 
-  // Categoria livre deixa entrar typo ("Bebida"), que grava no banco e depois
-  // não aparece em seção nenhuma da vitrine — item invisível sem erro.
-  @IsIn(CATEGORIAS, { message: 'Categoria inválida.' })
-  category: Categoria;
+  // Nome de uma categoria da loja. O ItemsService confere que ela existe pro
+  // tenant antes de gravar (não há mais lista fixa).
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1, { message: 'Escolha uma categoria.' })
+  @MaxLength(40)
+  category: string;
 
   @IsOptional()
   @IsString()

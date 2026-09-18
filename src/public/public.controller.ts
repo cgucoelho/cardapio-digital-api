@@ -1,7 +1,9 @@
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 
+import { CategoriesService } from '../categories/categories.service';
+import { Category } from '../categories/category.types';
 import { anonKey, tenantPadrao } from '../config';
-import { CATEGORIAS, Categoria, Item } from '../items/item.types';
+import { Item } from '../items/item.types';
 import { ItemsService } from '../items/items.service';
 import { Tenant } from '../tenants/tenant.types';
 import { TenantsService } from '../tenants/tenants.service';
@@ -21,6 +23,7 @@ export class PublicController {
   constructor(
     private readonly tenants: TenantsService,
     private readonly items: ItemsService,
+    private readonly categories: CategoriesService,
   ) {}
 
   /**
@@ -43,19 +46,21 @@ export class PublicController {
     return this.tenants.porSlug(slug);
   }
 
+  /** Categorias da loja, na ordem definida pelo lojista — a vitrine monta as seções por aqui. */
+  @Get(':slug/categories')
+  categorias(@Param('slug') slug: string): Promise<Category[]> {
+    return this.categories.porSlug(slug);
+  }
+
   @Get(':slug/items')
   async itens(
     @Param('slug') slug: string,
     @Query('category') category?: string,
   ): Promise<Item[]> {
-    if (category && !CATEGORIAS.includes(category as Categoria)) {
-      throw new BadRequestException(
-        `Categoria inválida. Use uma de: ${CATEGORIAS.join(', ')}.`,
-      );
-    }
-
     // porSlug já derruba slug inexistente e loja desativada com 404.
     const tenant = await this.tenants.porSlug(slug);
-    return this.items.findAll(tenant.id, category as Categoria | undefined);
+    // Filtro por categoria é texto livre agora; categoria inexistente só
+    // devolve lista vazia, não é erro.
+    return this.items.findAll(tenant.id, category || undefined);
   }
 }

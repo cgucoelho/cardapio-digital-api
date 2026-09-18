@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -18,7 +17,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import { Tenant } from '../tenants/tenant.types';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
-import { CATEGORIAS, Categoria, Item } from './item.types';
+import { Item } from './item.types';
 import { ItemsService } from './items.service';
 
 /**
@@ -36,12 +35,8 @@ export class ItemsController {
     @TenantAtual() tenant: Tenant,
     @Query('category') category?: string,
   ): Promise<Item[]> {
-    if (category && !CATEGORIAS.includes(category as Categoria)) {
-      throw new BadRequestException(
-        `Categoria inválida. Use uma de: ${CATEGORIAS.join(', ')}.`,
-      );
-    }
-    return this.itemsService.findAll(tenant.id, category as Categoria | undefined);
+    // Categoria é texto livre agora; filtro por nome, sem lista fixa.
+    return this.itemsService.findAll(tenant.id, category || undefined);
   }
 
   @Get(':id')

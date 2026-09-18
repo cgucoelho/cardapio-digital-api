@@ -51,18 +51,31 @@ create table if not exists public.tenant_users (
 create index if not exists tenant_users_user_idx on public.tenant_users (user_id);
 
 -- ---------------------------------------------------------------------
--- 3. Itens do cardápio
+-- 3. Categorias do cardápio (cada loja cria as suas)
 -- ---------------------------------------------------------------------
--- ⚠️ A lista de categorias tem três cópias que precisam andar juntas: o check
--- abaixo, api/src/items/item.types.ts e web/src/app/core/item.model.ts.
+create table if not exists public.categories (
+  id         uuid primary key default gen_random_uuid(),
+  tenant_id  uuid not null references public.tenants (id) on delete cascade,
+  name       text not null check (char_length(trim(name)) between 1 and 40),
+  sort_order int  not null default 0,
+  created_at timestamptz not null default now(),
+  unique (tenant_id, name)
+);
+create index if not exists categories_tenant_order_idx on public.categories (tenant_id, sort_order, name);
+
+-- ---------------------------------------------------------------------
+-- 4. Itens do cardápio
+-- ---------------------------------------------------------------------
+-- `category` é o NOME de uma categoria da loja (texto livre). Quem garante que
+-- o nome existe é a API (ItemsService valida contra public.categories) — não há
+-- mais lista fixa nem check aqui.
 create table if not exists public.items (
   id          uuid primary key default gen_random_uuid(),
   tenant_id   uuid not null references public.tenants (id) on delete cascade,
   name        text not null,
   description text,
   price       numeric(10, 2) not null check (price > 0),
-  category    text not null
-              check (category in ('Bebidas', 'Doces', 'Salgados', 'Refeições', 'Outros')),
+  category    text not null,
   image_url   text,
   available   boolean not null default true,
   created_at  timestamptz not null default now()
@@ -114,6 +127,7 @@ $$;
 
 alter table public.tenants      enable row level security;
 alter table public.tenant_users enable row level security;
+alter table public.categories   enable row level security;
 alter table public.items        enable row level security;
 
 drop policy if exists tenants_member_update on public.tenants;
@@ -129,6 +143,11 @@ create policy tenant_users_self_read on public.tenant_users
 -- /public/:slug/items, que filtra por tenant no repositório.
 drop policy if exists items_member_all on public.items;
 create policy items_member_all on public.items
+  for all using (public.is_tenant_member(tenant_id))
+  with check (public.is_tenant_member(tenant_id));
+
+drop policy if exists categories_member_all on public.categories;
+create policy categories_member_all on public.categories
   for all using (public.is_tenant_member(tenant_id))
   with check (public.is_tenant_member(tenant_id));
 
